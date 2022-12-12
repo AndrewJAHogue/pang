@@ -33,6 +33,7 @@ const int BUFFER = 50;
 
 class sNode : public RectangleShape {
   public:
+    int start_end_none = 3;
     bool obstacle = false;
     bool visited = false;
     float globalGoal;
@@ -64,20 +65,20 @@ class sNode : public RectangleShape {
 //   sNode *parent;
 // };
 
-// bool isTouching(Vector2i mouse, Vector2i rect){
-//   float mx = mouse.x;
-//   float my = mouse.y;
+bool isTouching(Vector2i mouse, Vector2i rect){
+  float mx = mouse.x;
+  float my = mouse.y;
 
-//   float rx = rect.x;
-//   float ry = rect.y;
-//   if ((mx >= rx && mx <= (rx + RECT_SIDE)) && (my >= ry && my <= (ry +
-//   RECT_SIDE))) {
-//     return true;
-//   }
-//   else{
-//     return false;
-//   }
-// }
+  float rx = rect.x;
+  float ry = rect.y;
+  if ((mx >= rx && mx <= (rx + RECT_SIDE)) && (my >= ry && my <= (ry +
+  RECT_SIDE))) {
+    return true;
+  }
+  else{
+    return false;
+  }
+}
 
 // std::shared_ptr<sNode> nodeStart = nullptr;
 // std::shared_ptr<sNode> nodeEnd = nullptr;
@@ -92,12 +93,25 @@ std::vector<RectangleShape> paths;
 
 bool Solve_AStar();
 
-// void changePtr(Node** ptr_ptr, Node *parent){
-//   *ptr_ptr = parent;
-// }
+double deg2rad(double degrees){
+  return 3.14 * degrees / 180;
+};
+
+double rad2deg(double radians){
+  return radians * 180 / 3.14;
+};
+
+
+int num_rect_y = ( SCREEN_HEIGHT - BUFFER ) / (2* RECT_SIDE );
+int num_rect_x = ( SCREEN_WIDTH - BUFFER ) / (2* RECT_SIDE );
 
 int main() {
   RenderWindow window(VideoMode(SCREEN_WIDTH, SCREEN_HEIGHT), "SQUARES!!!!");
+  std::cout << num_rect_y << std::endl;
+  std::cout << num_rect_x
+   << std::endl
+   << num_rect_x * num_rect_y
+   << std::endl;
 
   // create map
 
@@ -112,34 +126,97 @@ int main() {
       s.setPosition(Vector2f(x, y));
       s.setFillColor(Color::Blue);
 
-
       squares.push_back(s);
     }
   }
 
-  // nodeStart = std::make_shared<sNode>( &squares[30] );
-  // nodeEnd = std::make_shared<sNode>( &squares[26] );
 
-  // nodeStart->shape.setFillColor(Color::Green);
-  // nodeEnd->shape.setFillColor(Color::Yellow);
+// add neighbors together
+  for (int y = 0; y < squares.size(); y++){
+    sNode &s = squares[y];
+    int colIndex = y / num_rect_y;
+    int rowIndex = (y + 1) % num_rect_y;
+    // std::cout << "y " << y + 1 << " % " << (y + 1) % num_rect_y<< std::endl;
 
+    if (colIndex == 0){
+      // bottom
+      s.vNeighbors.push_back(&squares[y + 1]);
+      // right
+      s.vNeighbors.push_back(&squares[y + num_rect_y]);
+      if (y != 0){
+        // up 
+        s.vNeighbors.push_back(&squares[y - 1]);
+      }
+    }
+
+    // for (int x = 1; x < rowIndex; x++){
+    //   if (colIndex != 0 && colIndex != num_rect_x - 1) {
+    //     // s.setFillColor(Color::Yellow);
+    //     // s.vNeighbors.push_back(&squares[x*num_rect_y ]);
+    //     // s.vNeighbors.push_back(&squares[x*num_rect_y - 1]);
+    //     // // s.vNeighbors.push_back(&squares[x + 1]);
+    //     // s.vNeighbors.push_back(&squares[x*num_rect_x + y]);
+
+    //   }
+    // }
+
+
+    // far right column
+    if (colIndex == num_rect_x - 1){
+        // s.setFillColor(Color::Red);
+        // below first of the column
+        s.vNeighbors.push_back(&squares[y - num_rect_y]);
+        s.vNeighbors.push_back(&squares[y - 1]);
+    }
+
+
+    // exclude first and last rows
+    if (y % num_rect_y != 0 && y % num_rect_y != num_rect_y - 1 && y != 0 
+      // exclude first and last columns
+      && (colIndex != 0 && colIndex != num_rect_x - 1)) {
+      // s.setFillColor(Color::Green);
+
+      // right 
+      s.vNeighbors.push_back(&squares[y + num_rect_y]);
+      // left 
+      s.vNeighbors.push_back(&squares[y - num_rect_y]);
+      // up 
+      s.vNeighbors.push_back(&squares[y - 1]);
+      // down 
+      s.vNeighbors.push_back(&squares[y + 1]);
+    }
+  }
+
+// initial conditions; arbitrary
   nodeStart = &squares[30];
   nodeEnd = &squares[26];
+  // squares[0].setFillColor(Color::Cyan);
+  // squares.back().setFillColor(Color::Magenta);
 
-  sNode *ptr = &squares[27];
-  nodeEnd->setParent(ptr) ;
-  std::cout << "pointer 26 " << squares[26].parent << std::endl;
+  nodeStart->setFillColor(Color::Green);
+  nodeEnd->setFillColor(Color::Yellow);
 
-  ptr = &squares[28];
-  squares[27].setParent(ptr) ;
+  // nodeStart->start_end_none = 1;
+  // nodeEnd->start_end_none = 2;
 
-  ptr = &squares[29];
-  squares[28].setParent(ptr) ;
+// debugs
+  // sNode *ptr = &squares[27];
+  // nodeEnd->setParent(ptr) ;
+  // std::cout << "pointer 26 " << squares[26].parent << std::endl;
 
-  ptr = &squares[30];
-  squares[29].setParent(ptr) ;
-  std::cout << "pointer 30 " << squares[30].parent << std::endl;
+  // ptr = &squares[28];
+  // squares[27].setParent(ptr) ;
+
+  // ptr = &squares[29];
+  // squares[28].setParent(ptr) ;
+
+  // ptr = &squares[30];
+  // squares[29].setParent(ptr) ;
+  // std::cout << "pointer 30 " << squares[30].parent << std::endl;
+
+  // ptr = & squares[]
   
+  //  Solve_AStar();
 
   while (window.isOpen()) {
     sf::Event event;
@@ -147,7 +224,50 @@ int main() {
       if (event.type == sf::Event::Closed) {
         window.close();
       }
-      // if (event.type == sf::Event::MouseButtonReleased) {
+      if (event.type == sf::Event::MouseButtonReleased) {
+        // mouse event
+        sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+        for (auto &s : squares) {
+          Vector2i sPos = Vector2i(s.x, s.y);
+          if (isTouching(mousePos, sPos)) {
+            // set new start node
+              // toggle an obstacle
+            if (!sf::Keyboard::isKeyPressed(sf::Keyboard::LShift) &&
+                !sf::Keyboard::isKeyPressed(sf::Keyboard::LControl) &&
+                s.start_end_none == 3) {
+              s.obstacle = !s.obstacle;
+
+              if (s.obstacle)
+                s.setFillColor(Color::Red);
+              else
+                s.setFillColor(Color::Blue);
+            } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift)) {
+              s.setFillColor(Color::Green);
+              s.start_end_none = 1;
+
+              // revert the original nodeStart
+              nodeStart->setFillColor(Color::Blue);
+              nodeStart->start_end_none = 3;
+
+              nodeStart = &s;
+            }
+            // set new end node
+            else if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl)) {
+              s.setFillColor(Color::Yellow);
+              s.start_end_none = 2;
+
+              // revert the original nodeEnd
+              nodeEnd->setFillColor(Color::Blue);
+              nodeEnd->start_end_none = 3;
+
+              nodeEnd = &s;
+            }
+          }
+        }
+
+        Solve_AStar();
+        
+        // draw the path
         if (nodeEnd != nullptr) {
 
           // std::shared_ptr<sNode> &p = nodeEnd;
@@ -168,35 +288,68 @@ int main() {
             // distance
             double dx = xb - xa;
             double dy = yb - ya;
-            // double angle = tan(dy/dx); // radians
-            dx = abs(dx);
-            dy = abs(dy);
+            double hypotonuse = std::sqrt(dx*dx + dy*dy);
+            // angle to rotate
+            double angle = sin(dy/hypotonuse); // radians
+            angle = rad2deg(angle);
+            // dx = abs(dx);
+            // dy = abs(dy);
 
-            RectangleShape line(Vector2f(10, 20));
-            line.setPosition(Vector2f(xa, ya));
+
+            RectangleShape line(Vector2f(20, 10));
+            Vector2f linePos = Vector2f(xa, ya);
+            line.setPosition(linePos);
             line.setFillColor(Color::Red);
-            // line.setRotation(angle * 180 / 3.14); // angle in degrees
+
+              int sign = 1;
+            if (dx != 0){
+              if (dx < 0) {
+                sign = -1;
+              }
+
+              // line.setSize(Vector2f(20, 10));
+              line.setRotation(0);
+              Vector2f newPos = linePos + Vector2f(sign*RECT_SIDE, RECT_SIDE / 4);
+              line.setPosition(newPos);
+
+            }
+            else if (dy != 0){
+              if (dy < 0) {
+                sign = -1;
+              }
+              // line.setSize(Vector2f(10, 20));
+              Vector2f newPos = linePos + Vector2f(RECT_SIDE/2, sign*RECT_SIDE );
+              line.setPosition(newPos);
+              line.setRotation(90);
+            }
+
+
+          // debug
+          std::cout << "dx: " << dx
+           << std::endl
+           << "dy: " << dy
+           << std::endl
+          << "hypot: " << hypotonuse
+           << std::endl
+           << "angle: " << angle
+           << std::endl
+           << "current angle: " << line.getRotation()
+           << std::endl;
+
+            // line.setRotation(angle); // angle in degrees
 
             paths.push_back(line);
 
-            // Node parn = *p->parent;
-            // Node **ptr = &p;
-            // changePtr(ptr, p->parent);
-
             p = p->parent;
-            // parent = p->parent;
           }
         }
-      // }
+
+      }
     }
 
     window.clear();
 
     for (auto &s : squares) {
-      // sNode s = squares[i];
-      // RectangleShape n(Vector2f(200, 200));
-      // std::cout << squares[i].shape << std::endl;
-      // s.setFillColor(Color::Red);
       window.draw(s);
     }
 
@@ -210,115 +363,102 @@ int main() {
     return 0;
 }
 
-// bool Solve_AStar()
-// 	{
-//     paths.clear();
+bool Solve_AStar()
+	{
+    paths.clear();
 
-//     std::cout << "Running AStar" << std::endl;
-// 		// Reset Navigation Graph - default all node states
-// 		for (auto n : squares)
-// 			{
-//         n.visited = false;
-//         n.globalGoal = INFINITY;
-//         n.localGoal = INFINITY;
-//         n.parent = nullptr;
-// 			}
+		// Reset Navigation Graph - default all node states
+		for (auto &n : squares)
+			{
+        n.globalGoal = INFINITY;
+        n.localGoal = INFINITY;
+        n.visited = false;
+        n.parent = nullptr;
+			}
 
-// 		auto distance = [](Node* a, Node* b) // For convenience
-// 		{
-// 			return sqrtf((a->xpos - b->xpos)*(a->xpos - b->xpos) +
-// (a->ypos - b->ypos)*(a->ypos - b->ypos));
-// 		};
+		auto distance = [](sNode* a, sNode* b) // For convenience
+		{
+			return sqrtf((a->x - b->x)*(a->x - b->x) + (a->y - b->y)*(a->y - b->y));
+		};
 
-// 		auto heuristic = [distance](Node* a, Node* b) // So we can
-// experiment with heuristic
-// 		{
-// 			return distance(a, b);
-// 		};
+		auto heuristic = [distance](sNode* a, sNode* b) // So we can experiment with heuristic
+		{
+			return distance(a, b);
+		};
 
-// 		// Setup starting conditions
-// 		Node *nodeCurrent = nodeStart;
-// 		nodeCurrent->localGoal = 0.0f;
-// 		nodeCurrent->globalGoal = heuristic(nodeStart, nodeEnd);
-//     std::cout << "Heuristic " << nodeStart->globalGoal << std::endl;
+		// Setup starting conditions
+		sNode *nodeCurrent = nodeStart;
+		nodeStart->localGoal = 0.0f;
+		nodeStart->globalGoal= heuristic(nodeStart, nodeEnd);
 
-// 		// Add start node to not tested list - this will ensure it gets
-// tested.
-// 		// As the algorithm progresses, newly discovered nodes get added
-// to this
-// 		// list, and will themselves be tested later
-// 		std::list<Node*> listNotTestedNodes;
-// 		listNotTestedNodes.push_back(nodeStart);
+		// Add start node to not tested list - this will ensure it gets tested.
+		// As the algorithm progresses, newly discovered nodes get added to this
+		// list, and will themselves be tested later
+		std::list<sNode*> listNotTestedNodes;
+		listNotTestedNodes.push_back(nodeStart);
 
-// 		// if the not tested list contains nodes, there may be better
-// paths
-// 		// which have not yet been explored. However, we will also stop
-// 		// searching when we reach the target - there may well be better
-// 		// paths but this one will do - it wont be the longest.
-// 		while (!listNotTestedNodes.empty() && nodeCurrent != nodeEnd)//
-// Find absolutely shortest path // && nodeCurrent != nodeEnd)
-// 		{
-// 			// Sort Untested nodes by global goal, so lowest is
-// first 			listNotTestedNodes.sort([](const Node* lhs, const
-// Node* rhs){ return lhs->globalGoal < rhs->globalGoal; } );
+		// if the not tested list contains nodes, there may be better paths
+		// which have not yet been explored. However, we will also stop 
+		// searching when we reach the target - there may well be better
+		// paths but this one will do - it wont be the longest.
+		while (!listNotTestedNodes.empty() && nodeCurrent != nodeEnd)// Find absolutely shortest path // && nodeCurrent != nodeEnd)
+		{
+			// Sort Untested nodes by global goal, so lowest is first
+			listNotTestedNodes.sort([](const sNode* lhs, const sNode* rhs){ return lhs->globalGoal < rhs->globalGoal; } );
+			
+			// Front of listNotTestedNodes is potentially the lowest distance node. Our
+			// list may also contain nodes that have been visited, so ditch these...
+			while(!listNotTestedNodes.empty() && listNotTestedNodes.front()->visited)
+				listNotTestedNodes.pop_front();
 
-// 			// Front of listNotTestedNodes is potentially the lowest
-// distance node. Our
-// 			// list may also contain nodes that have been visited,
-// so ditch these... 			while(!listNotTestedNodes.empty() &&
-// listNotTestedNodes.front()->visited)
-// listNotTestedNodes.pop_front();
+			// ...or abort because there are no valid nodes left to test
+			if (listNotTestedNodes.empty())
+				break;
 
-// 			// ...or abort because there are no valid nodes left to
-// test 			if (listNotTestedNodes.empty())
-// break;
+			nodeCurrent = listNotTestedNodes.front();
+			nodeCurrent->visited = true; // We only explore a node once
+			
+					
+			// Check each of this node's neighbours...
+      // std::cout << "neighbors?" << std::endl;
+			for (auto &nodeNeighbour : nodeCurrent->vNeighbors)
+			{
+        // std::cout << "neighbors yes!!" << std::endl;
+				// ... and only if the neighbour is not visited and is 
+				// not an obstacle, add it to NotTested List
+				if (!nodeNeighbour->visited && nodeNeighbour->obstacle == 0)
+					listNotTestedNodes.push_back(nodeNeighbour);
 
-// 			nodeCurrent = listNotTestedNodes.front();
-// 			nodeCurrent->visited = true; // We only explore a node
-// once
+				// Calculate the neighbours potential lowest parent distance
+				float fPossiblyLowerGoal = nodeCurrent->localGoal + distance(nodeCurrent, nodeNeighbour);
 
-// 			// Check each of this node's neighbours...
-// 			for (auto nodeNeighbour : nodeCurrent->vNeighbors)
-// 			{
-// 				// ... and only if the neighbour is not visited
-// and is
-// 				// not an obstacle, add it to NotTested List
-// 				if (!nodeNeighbour->visited &&
-// nodeNeighbour->obstacle
-// == 0)
-// listNotTestedNodes.push_back(nodeNeighbour);
+				// If choosing to path through this node is a lower distance than what 
+				// the neighbour currently has set, update the neighbour to use this node
+				// as the path source, and set its distance scores as necessary
+        // // std::cout << "Just before possibly lower goal conditional" << std::endl;
+        // // std::cout << "neighbor localgoal "
+        //  << nodeNeighbour->localGoal
+        //  << std::endl
+        //  << "possibly lower goal " << fPossiblyLowerGoal
+        //  << std::endl;
+				if (fPossiblyLowerGoal < nodeNeighbour->localGoal)
+				{
 
-// 				// Calculate the neighbours potential lowest
-// parent distance 				float fPossiblyLowerGoal =
-// nodeCurrent->localGoal + distance(nodeCurrent, nodeNeighbour);
+          // std::cout << "setting new parent for: " << nodeNeighbour << std::endl;
+					nodeNeighbour->parent = nodeCurrent;
+          sNode *ptr = nodeCurrent;
+          nodeNeighbour->setParent(ptr);
+					nodeNeighbour->localGoal = fPossiblyLowerGoal;
 
-// 				// If choosing to path through this node is a
-// lower distance than what
-// 				// the neighbour currently has set, update the
-// neighbour to use this node
-// 				// as the path source, and set its distance
-// scores as necessary 				if (fPossiblyLowerGoal <
-// nodeNeighbour->localGoal)
-// 				{
-// 					nodeNeighbour->parent = nodeCurrent;
-// 					nodeNeighbour->localGoal =
-// fPossiblyLowerGoal;
+					// The best path length to the neighbour being tested has changed, so
+					// update the neighbour's score. The heuristic is used to globally bias
+					// the path algorithm, so it knows if its getting better or worse. At some
+					// point the algo will realise this path is worse and abandon it, and then go
+					// and search along the next best path.
+					nodeNeighbour->globalGoal = nodeNeighbour->localGoal + heuristic(nodeNeighbour, nodeEnd);
+				}
+			}	
+		}
 
-// 					// The best path length to the neighbour
-// being tested has changed, so
-// 					// update the neighbour's score. The
-// heuristic is used to globally bias
-// 					// the path algorithm, so it knows if
-// its getting better or worse. At some
-// 					// point the algo will realise this path
-// is worse and abandon it, and then go
-// 					// and search along the next best path.
-// 					nodeNeighbour->globalGoal =
-// nodeNeighbour->localGoal
-// + heuristic(nodeNeighbour, nodeEnd);
-// 				}
-// 			}
-// 		}
-
-// 		return true;
-// 	}
+		return true;
+	}
